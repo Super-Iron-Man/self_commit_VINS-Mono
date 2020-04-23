@@ -1,9 +1,9 @@
 # VINS-Mono注释
 当前仍旧在注释中，未完成，会持续更新。
 
-代码的注释部分主要参考CSDN上的博主**[洗脸盆啦啦啦](https://me.csdn.net/try_again_later)**,给博主点个赞，写得特别好，我主要也是在他的基础上**[一文详解单目VINS论文与代码解读目录](https://blog.csdn.net/try_again_later/article/details/104854698)**，根据自己的理解和不懂的地方又继续细化和丰富了一些注释，代码量很大，有理解错误的地方，欢迎大家一起讨论指正。
+代码的注释部分主要参考CSDN上的博主[洗脸盆啦啦啦](https://me.csdn.net/try_again_later),给博主点个赞，写得特别好，我主要也是在他的基础上，根据自己的理解和不懂的地方又继续细化和丰富了一些注释，代码量很大，有理解错误的地方，欢迎大家一起讨论指正。
 
-VINS-Mono论文的解读和公式推导，可以首先阅读崔华坤老师github上的资料**[主流VIO论文推导及代码解析](https://github.com/StevenCui/VIO-Doc)
+VINS-Mono论文的解读和公式推导，可以首先阅读崔华坤老师github上的资料[主流VIO论文推导及代码解析](https://github.com/StevenCui/VIO-Doc)
 其中有两本参考文献特别棒，在这里也给出下载链接
 * [Indirect Kalman Filter for 3D Attitude Estimation](mars.cs.umn.edu/tr/reports/Trawny05b.pdf)
 * [Quaternion kinematics for error-state kalman filter](www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf)
