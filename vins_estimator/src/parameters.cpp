@@ -23,7 +23,7 @@ std::string IMU_TOPIC;
 double ROW, COL;
 double TD, TR;
 
-template <typename T>
+template <typename T>//定义模板
 T readParam(ros::NodeHandle &n, std::string name)
 {
     T ans;
@@ -39,7 +39,7 @@ T readParam(ros::NodeHandle &n, std::string name)
     return ans;
 }
 
-void readParameters(ros::NodeHandle &n)
+void readParameters(ros::NodeHandle &n)//参考feature_tracker中的parameters.cpp函数
 {
     std::string config_file;
     config_file = readParam<std::string>(n, "config_file");
@@ -66,6 +66,21 @@ void readParameters(ros::NodeHandle &n)
 
     std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
     fout.close();
+    /*
+    很多程序中，可能会碰到ofstream out("Hello.txt"), ifstream in("..."),fstream foi("...")这样的的使用，
+    并没有显式的去调用open（）函数就进行文件的操作，直接调用了其默认的打开方式，因为在stream类的构造函数中调用了open()函数,
+    并拥有同样的构造函数，所以在这里可以直接使用流对象进行文件的操作，默认方式如下：
+        ofstream out("...", ios::out);
+        ifstream in("...", ios::in);
+        fstream foi("...", ios::in|ios::out);
+
+    当使用默认方式进行对文件的操作时，你可以使用成员函数is_open()对文件是否打开进行验证 
+
+    当文件读写操作完成之后，我们必须将文件关闭以使文件重新变为可访问的。成员函数close()，它负责将缓存中的数据排放出
+    来并关闭文件。这个函数一旦被调用，原先的流对象就可以被用来打开其它的文件了，这个文件也就可以重新被其它的进程所访问了。
+    为防止流对象被销毁时还联系着打开的文件，析构函数将会自动调用关闭函数close。
+
+    */
 
     ACC_N = fsSettings["acc_n"];
     ACC_W = fsSettings["acc_w"];
@@ -100,9 +115,9 @@ void readParameters(ros::NodeHandle &n)
         fsSettings["extrinsicTranslation"] >> cv_T;
         Eigen::Matrix3d eigen_R;
         Eigen::Vector3d eigen_T;
-        cv::cv2eigen(cv_R, eigen_R);
+        cv::cv2eigen(cv_R, eigen_R);//将opencv转换到eigen格式
         cv::cv2eigen(cv_T, eigen_T);
-        Eigen::Quaterniond Q(eigen_R);
+        Eigen::Quaterniond Q(eigen_R);//转化到四元数形式
         eigen_R = Q.normalized();
         RIC.push_back(eigen_R);
         TIC.push_back(eigen_T);

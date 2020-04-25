@@ -164,6 +164,7 @@ trackerData[i].pts_velocity    像素速度
                     p.z = 1;
 
                     feature_points->points.push_back(p);
+
                     id_of_point.values.push_back(p_id * NUM_OF_CAM + i);
                     u_of_point.values.push_back(cur_pts[j].x);
                     v_of_point.values.push_back(cur_pts[j].y);
@@ -264,7 +265,7 @@ int main(int argc, char **argv)
     // 4.订阅话题IMAGE_TOPIC(/cam0/image_raw),有图像发布到这个话题时，执行回调函数img_callback
     ros::Subscriber sub_img = n.subscribe(IMAGE_TOPIC, 100, img_callback);
 
-    // 5.发布feature点云，实例feature_points，跟踪的特征点，给后端优化用
+    // 5.发布feature点云，实例feature_points，跟踪的特征点，给后端优化用；包括：points:矫正后归一化平面的3D点(x,y,z=1);channels:特征点id，像素2D点(u,v)，像素的速度(vx,vy)
     pub_img = n.advertise<sensor_msgs::PointCloud>("feature", 1000);
     //发布feature_img，实例ptr，跟踪的特征点图，给RVIZ用和调试用
     pub_match = n.advertise<sensor_msgs::Image>("feature_img",1000);

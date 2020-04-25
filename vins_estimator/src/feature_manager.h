@@ -14,7 +14,11 @@ using namespace Eigen;
 #include <ros/assert.h>
 
 #include "parameters.h"
-
+/*
+FeatureManager:管理所有特征点，通过list容器存储特征点属性
+FeaturePerId:指的是某feature_id下的所有FeaturePerFrame。常用feature_id和观测第一帧start_frame、最后一帧endFrame()
+FeaturePerFrame:指的是每帧基本的数据：特征点[x,y,z,u,v,vx,vy]和td IMU与cam同步时间差
+*/
 class FeaturePerFrame
 {
   public:

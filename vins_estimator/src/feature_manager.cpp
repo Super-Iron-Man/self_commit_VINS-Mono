@@ -1,5 +1,9 @@
 #include "feature_manager.h"
-
+/*
+FeatureManager:管理所有特征点，通过list容器存储特征点属性
+FeaturePerId:指的是某feature_id下的所有FeaturePerFrame。常用feature_id和观测第一帧start_frame、最后一帧endFrame()
+FeaturePerFrame:指的是每帧基本的数据：特征点[x,y,z,u,v,vx,vy]和td IMU与cam同步时间差
+*/
 int FeaturePerId::endFrame()//返回最后一个观测到这个特征点的图像帧ID
 {
     return start_frame + feature_per_frame.size() - 1;
@@ -42,19 +46,19 @@ int FeatureManager::getFeatureCount()//窗口中被跟踪特征点的数量
 }
 
 //特征点进入时检查视差，是否为关键帧
-/****
+/*
 为什么要检查视差？
 
 VINS中为了控制优化计算量，只对当前帧之前某一部分帧进行优化，而不是全部历史帧，局部优化帧数量的大小就是窗口大小。
 
 为了维持窗口大小，需要去除旧帧添加新帧，也就是边缘化Marginalization。到底是删去最旧的帧（MARGIN_OLD）还是删去刚刚进来窗口
 倒数第二帧(MARGIN_SECOND_NEW)，就需要对当前帧与之前帧进行视差比较，如果是当前帧变化很小，就会删去倒数第二帧，如果变化很大，就删去最旧的帧。
-****/
-/****
+*/
+/*
 关键帧选取：
 1、当前帧相对最近的关键帧的特征平均视差大于一个阈值就为关键帧（因为视差可以根据平移和旋转共同得到，而纯旋转则导致不能三角化成功，所以这一步需要IMU预积分进行补偿）
 2、当前帧跟踪到的特征点数量小于阈值视为关键帧；
- ****/
+*/
 bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td)
 {
     ROS_DEBUG("input feature: %d", (int)image.size());// 特征点数量

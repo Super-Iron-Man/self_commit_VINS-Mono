@@ -16,6 +16,7 @@ void Estimator::setParameter()
     f_manager.setRic(ric);
     ProjectionFactor::sqrt_info = FOCAL_LENGTH / 1.5 * Matrix2d::Identity();
     ProjectionTdFactor::sqrt_info = FOCAL_LENGTH / 1.5 * Matrix2d::Identity();
+    //视觉约束的噪声协方差与标定相机内参时的重投影误差，也就是偏离几个像素有关， 这里取的 1.5 个像素， 对应到归一化相机平面上的协方差矩阵需除以焦距 f，则信息矩阵等于协方差矩阵的逆
     td = TD;
 }
 

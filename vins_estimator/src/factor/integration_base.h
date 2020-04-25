@@ -19,7 +19,7 @@ class IntegrationBase
           sum_dt{0.0}, delta_p{Eigen::Vector3d::Zero()}, delta_q{Eigen::Quaterniond::Identity()}, delta_v{Eigen::Vector3d::Zero()}
 
     {
-        noise = Eigen::Matrix<double, 18, 18>::Zero();
+        noise = Eigen::Matrix<double, 18, 18>::Zero();//噪声项的对角协方差矩阵
         noise.block<3, 3>(0, 0) =  (ACC_N * ACC_N) * Eigen::Matrix3d::Identity();
         noise.block<3, 3>(3, 3) =  (GYR_N * GYR_N) * Eigen::Matrix3d::Identity();
         noise.block<3, 3>(6, 6) =  (ACC_N * ACC_N) * Eigen::Matrix3d::Identity();
@@ -36,6 +36,7 @@ class IntegrationBase
         propagate(dt, acc, gyr);
     }
 
+    //新的bias重新计算预积分
     void repropagate(const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg)
     {
         sum_dt = 0.0;
@@ -51,8 +52,6 @@ class IntegrationBase
         for (int i = 0; i < static_cast<int>(dt_buf.size()); i++)
             propagate(dt_buf[i], acc_buf[i], gyr_buf[i]);
     }
-
-
 
     //IMU预积分中采用中值积分递推Jacobian和Covariance
     //构造误差的线性化递推方程，得到Jacobian和Covariance递推公式-> Paper 式9、10、11
@@ -82,7 +81,7 @@ class IntegrationBase
             Vector3d a_1_x = _acc_1 - linearized_ba;
             Matrix3d R_w_x, R_a_0_x, R_a_1_x;
 
-            R_w_x<<0, -w_x(2), w_x(1),
+            R_w_x<<0, -w_x(2), w_x(1),//反对称矩阵
                 w_x(2), 0, -w_x(0),
                 -w_x(1), w_x(0), 0;
             R_a_0_x<<0, -a_0_x(2), a_0_x(1),
@@ -92,22 +91,23 @@ class IntegrationBase
                 a_1_x(2), 0, -a_1_x(0),
                 -a_1_x(1), a_1_x(0), 0;
 
+            //delta_Z(k+1)=F*delta_Z(k)+V*Q <==> 15x1=15x15*15x1+15x18*18x1
             MatrixXd F = MatrixXd::Zero(15, 15);
-            F.block<3, 3>(0, 0) = Matrix3d::Identity();
+            F.block<3, 3>(0, 0) = Matrix3d::Identity();//I
             F.block<3, 3>(0, 3) = -0.25 * delta_q.toRotationMatrix() * R_a_0_x * _dt * _dt + 
-                                  -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt * _dt;
-            F.block<3, 3>(0, 6) = MatrixXd::Identity(3,3) * _dt;
-            F.block<3, 3>(0, 9) = -0.25 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt * _dt;
-            F.block<3, 3>(0, 12) = -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * _dt * -_dt;
-            F.block<3, 3>(3, 3) = Matrix3d::Identity() - R_w_x * _dt;
-            F.block<3, 3>(3, 12) = -1.0 * MatrixXd::Identity(3,3) * _dt;
+                                  -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt * _dt;//f01
+            F.block<3, 3>(0, 6) = MatrixXd::Identity(3,3) * _dt;//delta_t
+            F.block<3, 3>(0, 9) = -0.25 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt * _dt;//f03
+            F.block<3, 3>(0, 12) = -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * _dt * -_dt;//f04
+            F.block<3, 3>(3, 3) = Matrix3d::Identity() - R_w_x * _dt;//f11
+            F.block<3, 3>(3, 12) = -1.0 * MatrixXd::Identity(3,3) * _dt;//-delta_t
             F.block<3, 3>(6, 3) = -0.5 * delta_q.toRotationMatrix() * R_a_0_x * _dt + 
-                                  -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt;
-            F.block<3, 3>(6, 6) = Matrix3d::Identity();
-            F.block<3, 3>(6, 9) = -0.5 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt;
-            F.block<3, 3>(6, 12) = -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * -_dt;
-            F.block<3, 3>(9, 9) = Matrix3d::Identity();
-            F.block<3, 3>(12, 12) = Matrix3d::Identity();
+                                  -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt;//f21
+            F.block<3, 3>(6, 6) = Matrix3d::Identity();//I
+            F.block<3, 3>(6, 9) = -0.5 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt;//f23
+            F.block<3, 3>(6, 12) = -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * -_dt;//f24
+            F.block<3, 3>(9, 9) = Matrix3d::Identity();//I
+            F.block<3, 3>(12, 12) = Matrix3d::Identity();//I
             //cout<<"A"<<endl<<A<<endl;
 
             MatrixXd V = MatrixXd::Zero(15,18);
@@ -126,22 +126,23 @@ class IntegrationBase
 
             //step_jacobian = F;
             //step_V = V;
-            jacobian = F * jacobian;
-            covariance = F * covariance * F.transpose() + V * noise * V.transpose();
+            jacobian = F * jacobian;//Jacobiandi迭代公式
+            covariance = F * covariance * F.transpose() + V * noise * V.transpose();//协方差迭代公式
         }
 
     }
 
+    //IMU预积分传播方程
     void propagate(double _dt, const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1)
     {
         dt = _dt;
         acc_1 = _acc_1;
         gyr_1 = _gyr_1;
-        Vector3d result_delta_p;
-        Quaterniond result_delta_q;
-        Vector3d result_delta_v;
-        Vector3d result_linearized_ba;
-        Vector3d result_linearized_bg;
+        Vector3d result_delta_p;//P
+        Quaterniond result_delta_q;//Q
+        Vector3d result_delta_v;//V
+        Vector3d result_linearized_ba;//ba
+        Vector3d result_linearized_bg;//bg
 
         midPointIntegration(_dt, acc_0, gyr_0, _acc_1, _gyr_1, delta_p, delta_q, delta_v,
                             linearized_ba, linearized_bg,
@@ -161,6 +162,7 @@ class IntegrationBase
         gyr_0 = gyr_1;  
      
     }
+
     // 构建残差residuals
     Eigen::Matrix<double, 15, 1> evaluate(const Eigen::Vector3d &Pi, const Eigen::Quaterniond &Qi, const Eigen::Vector3d &Vi, const Eigen::Vector3d &Bai, const Eigen::Vector3d &Bgi,
                                           const Eigen::Vector3d &Pj, const Eigen::Quaterniond &Qj, const Eigen::Vector3d &Vj, const Eigen::Vector3d &Baj, const Eigen::Vector3d &Bgj)
@@ -199,8 +201,8 @@ class IntegrationBase
 
     Eigen::Matrix<double, 15, 15> jacobian, covariance;
     Eigen::Matrix<double, 15, 15> step_jacobian;
-    Eigen::Matrix<double, 15, 18> step_V;
-    Eigen::Matrix<double, 18, 18> noise;
+    Eigen::Matrix<double, 15, 18> step_V;//V
+    Eigen::Matrix<double, 18, 18> noise;//Q
 
     double sum_dt;
     Eigen::Vector3d delta_p;
