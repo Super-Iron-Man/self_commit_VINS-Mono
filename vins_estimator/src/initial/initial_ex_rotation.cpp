@@ -7,7 +7,10 @@ InitialEXRotation::InitialEXRotation(){
     Rimu.push_back(Matrix3d::Identity());
     ric = Matrix3d::Identity();
 }
-
+/*
+输入参数为：vector<pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu, 匹配的特征点 和 IMU预积分得的旋转矩阵Q
+输出参数：Matrix3d &calib_ric_result    标定的外参数
+*/
 bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu, Matrix3d &calib_ric_result)
 {
     frame_count++;
@@ -25,7 +28,8 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
         Quaterniond r1(Rc[i]);
         Quaterniond r2(Rc_g[i]);
 
-        double angular_distance = 180 / M_PI * r1.angularDistance(r2);
+        double angular_distance = 180 / M_PI * r1.angularDistance(r2);//算两个坐标系之间相对旋转矩阵在做轴角变换后(u * theta)的角度theta
+        //theta越小说明两个坐标系的姿态越接近，这个角度距离用于后面计算权重，这里计算权重就是为了降低外点的干扰，意思就是为了防止出现误差非常大的R_bk+1^bk和 R_ck+1^ck约束导致估计的结果偏差太大 
         ROS_DEBUG(
             "%d %f", i, angular_distance);
         //huber核函数做加权
@@ -36,8 +40,8 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
         //[Q1(q_bk+1^bk) - Q2(q_ck+1^ck)] * q_c^b = 0
         Matrix4d L, R;
 
-        double w = Quaterniond(Rc[i]).w();// 相机间旋转矩阵
-        Vector3d q = Quaterniond(Rc[i]).vec();
+        double w = Quaterniond(Rc[i]).w();// 相机间旋转矩阵,实部
+        Vector3d q = Quaterniond(Rc[i]).vec();// 相机间旋转矩阵,虚部
         L.block<3, 3>(0, 0) = w * Matrix3d::Identity() + Utility::skewSymmetric(q);
         L.block<3, 1>(0, 3) = q;
         L.block<1, 3>(3, 0) = -q.transpose();
@@ -136,7 +140,7 @@ double InitialEXRotation::testTriangulation(const vector<cv::Point2f> &l,
     ROS_DEBUG("MotionEstimator: %f", 1.0 * front_count / pointcloud.cols);
     return 1.0 * front_count / pointcloud.cols;
 }
-
+//本质矩阵E分解得到R T
 void InitialEXRotation::decomposeE(cv::Mat E,
                                  cv::Mat_<double> &R1, cv::Mat_<double> &R2,
                                  cv::Mat_<double> &t1, cv::Mat_<double> &t2)
