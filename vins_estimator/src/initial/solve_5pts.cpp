@@ -189,7 +189,16 @@ namespace cv {
     }
 }
 
-
+/**
+ * @brief   通过求解本质矩阵得到R,t
+ * @Description findFundamentalMat()采用RANSAC算法求解本质矩阵E
+ *              recoverPose()通过本质矩阵得到Rt
+                求Rt的对称变换，判断内点数大于12
+ * @param[in]   corres  对应特征点对
+ * @param[out]  Rotation    当前帧到参考帧的旋转矩阵
+ * @param[out]  Translation 当前帧到参考帧的平移向量
+ * @return      bool    true:内点数大于12
+*/
 bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &corres, Matrix3d &Rotation, Vector3d &Translation)
 {
     if (corres.size() >= 15)
@@ -201,9 +210,30 @@ bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &co
             rr.push_back(cv::Point2f(corres[i].second(0), corres[i].second(1)));
         }
         cv::Mat mask;
+        /**
+         *  Mat cv::findFundamentalMat(  返回通过RANSAC算法求解两幅图像之间的本质矩阵E
+         *      nputArray  points1,             第一幅图像点的数组
+         *      InputArray  points2,            第二幅图像点的数组
+         *      int     method = FM_RANSAC,     RANSAC 算法
+         *      double  param1 = 3.,            点到对极线的最大距离，超过这个值的点将被舍弃
+         *      double  param2 = 0.99,          矩阵正确的可信度
+         *      OutputArray mask = noArray()    在计算过程中没有被舍弃的点
+         *  ) 
+        */    
         cv::Mat E = cv::findFundamentalMat(ll, rr, cv::FM_RANSAC, 0.3 / 460, 0.99, mask);
         cv::Mat cameraMatrix = (cv::Mat_<double>(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
         cv::Mat rot, trans;
+        /**
+         *  int cv::recoverPose (   通过本质矩阵得到Rt，返回通过手性校验的内点个数
+         *      InputArray  E,              本质矩阵
+         *      InputArray  points1,        第一幅图像点的数组
+         *      InputArray  points2,        第二幅图像点的数组
+         *      InputArray  cameraMatrix,   相机内参
+         *      OutputArray     R,          第一帧坐标系到第二帧坐标系的旋转矩阵
+         *      OutputArray     t,          第一帧坐标系到第二帧坐标系的平移向量
+         *      InputOutputArray    mask = noArray()  在findFundamentalMat()中没有被舍弃的点
+         *  )  
+        */
         int inlier_cnt = cv::recoverPose(E, ll, rr, cameraMatrix, rot, trans, mask);
         //cout << "inlier_cnt " << inlier_cnt << endl;
 
@@ -215,7 +245,7 @@ bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &co
             for (int j = 0; j < 3; j++)
                 R(i, j) = rot.at<double>(i, j);
         }
-
+        //得到窗口最后一帧（当前帧）到第l帧（参考帧）的坐标系变换Rt
         Rotation = R.transpose();
         Translation = -R.transpose() * T;
         if(inlier_cnt > 12)
