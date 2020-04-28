@@ -8,6 +8,8 @@ VINS-Mono论文的解读和公式推导，可以首先阅读崔华坤老师githu
 * [Indirect Kalman Filter for 3D Attitude Estimation](mars.cs.umn.edu/tr/reports/Trawny05b.pdf)
 * [Quaternion kinematics for error-state kalman filter](www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf)
 
+新增了一个文件夹**Super-Iron_man**,放入了一些参考文献和自己整理VINS代码期间所画的**思维导图**，有助于串联整个系统文件,非常值得推荐，借助MindMaster可以很方便打开。
+
 原Readme内容如下
 ---
 # VINS-Mono
